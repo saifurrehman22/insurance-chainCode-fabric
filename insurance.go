@@ -94,11 +94,19 @@ func (s *SmartContract) getNextID(ctx contractapi.TransactionContextInterface) (
 }
 
 // CreateHealthInsurancePolicy adds a new health insurance policy to the ledger
-func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, premium float64, coverage float64, effectiveDate string, expirationDate string) error {
+func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, premium float64, coverage float64) error {
 	id, err := s.getNextID(ctx)
 	if err != nil {
 		return err
 	}
+
+	timestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return err
+	}
+
+	effectiveDate := time.Unix(timestamp.Seconds, int64(timestamp.Nanos))
+	expirationDate := effectiveDate.Add(5 * time.Minute)
 
 	policy := Policy{
 		ID:             id,
@@ -106,8 +114,8 @@ func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionC
 		PolicyType:     "Health",
 		Premium:        premium,
 		Coverage:       coverage,
-		EffectiveDate:  effectiveDate,
-		ExpirationDate: expirationDate,
+		EffectiveDate:  effectiveDate.Format(time.RFC3339),
+		ExpirationDate: expirationDate.Format(time.RFC3339),
 		TotalPaid:      0,
 		PolicyStatus:   Active,
 	}
@@ -120,11 +128,19 @@ func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionC
 }
 
 // CreateLifeInsurancePolicy adds a new life insurance policy to the ledger
-func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, premium float64, coverage float64, effectiveDate string, expirationDate string) error {
+func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, premium float64, coverage float64) error {
 	id, err := s.getNextID(ctx)
 	if err != nil {
 		return err
 	}
+
+	timestamp, err := ctx.GetStub().GetTxTimestamp()
+	if err != nil {
+		return err
+	}
+
+	effectiveDate := time.Unix(timestamp.Seconds, int64(timestamp.Nanos))
+	expirationDate := effectiveDate.Add(5 * time.Minute)
 
 	policy := Policy{
 		ID:             id,
@@ -132,8 +148,8 @@ func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionCon
 		PolicyType:     "Life",
 		Premium:        premium,
 		Coverage:       coverage,
-		EffectiveDate:  effectiveDate,
-		ExpirationDate: expirationDate,
+		EffectiveDate:  effectiveDate.Format(time.RFC3339),
+		ExpirationDate: expirationDate.Format(time.RFC3339),
 		TotalPaid:      0,
 		PolicyStatus:   Active,
 	}
@@ -165,7 +181,7 @@ func (s *SmartContract) ReadPolicy(ctx contractapi.TransactionContextInterface, 
 }
 
 // UpdatePolicy updates an existing policy in the ledger
-func (s *SmartContract) UpdatePolicy(ctx contractapi.TransactionContextInterface, id int, holderName string, policyType string, premium float64, coverage float64, effectiveDate string, expirationDate string) error {
+func (s *SmartContract) UpdatePolicy(ctx contractapi.TransactionContextInterface, id int, holderName string, policyType string, premium float64, coverage float64) error {
 	policy, err := s.ReadPolicy(ctx, id)
 	if err != nil {
 		return err
@@ -175,8 +191,6 @@ func (s *SmartContract) UpdatePolicy(ctx contractapi.TransactionContextInterface
 	policy.PolicyType = policyType
 	policy.Premium = premium
 	policy.Coverage = coverage
-	policy.EffectiveDate = effectiveDate
-	policy.ExpirationDate = expirationDate
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
 		return err
