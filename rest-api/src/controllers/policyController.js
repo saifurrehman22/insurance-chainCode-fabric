@@ -94,11 +94,26 @@ async function getInstallmentNo(req, res) {
     }
 }
 
+
+async function setInstallmentNo(req, res) {
+    const { newInstallmentNo } = req.body;
+    console.log(`Received request to set new installment number to: ${newInstallmentNo}`);
+
+    try {
+        await submitTransaction('SetInstallmentNo', newInstallmentNo.toString());
+        console.log(`Successfully set new installment number to: ${newInstallmentNo}`);
+        res.status(200).send(`Installment number set to ${newInstallmentNo}`);
+    } catch (error) {
+        console.error(`Failed to set installment number: ${error}`);
+        res.status(500).send(`Failed to set installment number: ${error}`);
+    }
+}
+
 async function createLifeInsurancePolicy(req, res) {
     const { holderName, premium, coverage, effectiveDate, expirationDate } = req.body;
     try {
         await submitTransaction('CreateLifeInsurancePolicy', holderName, premium.toString(), coverage.toString());
-        console.log("created Life Insurance Policy " );
+        console.log("created Life Insurance Policy ");
         res.status(200).send('Life insurance policy created successfully');
     } catch (error) {
         res.status(500).send(`Failed to create life insurance policy: ${error}`);
@@ -151,6 +166,20 @@ async function cancelPolicy(req, res) {
         res.status(500).send(`Failed to cancel policy: ${error}`);
     }
 }
+async function deletePolicy(req, res) {
+    const { id } = req.body; // Extract id from req.body
+    console.log(`Received request to delete policy with ID: ${id}`);
+
+    try {
+        await submitTransaction('DeletePolicy', id.toString());
+        console.log(`Successfully deleted policy with ID: ${id}`);
+        res.status(200).send(`Policy with ID ${id} has been deleted`);
+    } catch (error) {
+        console.error(`Failed to delete policy with ID: ${id} - Error: ${error}`);
+        res.status(500).send(`Failed to delete policy: ${error}`);
+    }
+}
+
 
 module.exports = {
     initLedger,
@@ -159,5 +188,7 @@ module.exports = {
     payPremium,
     getPolicy,
     claimCoverage,
-    cancelPolicy
+    cancelPolicy,
+    deletePolicy,
+    setInstallmentNo
 };

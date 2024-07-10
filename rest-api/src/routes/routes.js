@@ -9,5 +9,7 @@ router.post('/payPremium', policyController.payPremium);
 router.get('/policy/:id', policyController.getPolicy);
 router.post('/claimCoverage', policyController.claimCoverage);
 router.post('/cancelPolicy', policyController.cancelPolicy);
+router.post('/deletePolicy', policyController.deletePolicy);
+router.post('/setInstallmentNo', policyController.setInstallmentNo);
 
 module.exports = router;
