@@ -342,6 +342,66 @@ func (s *SmartContract) GetTotalPaid(ctx contractapi.TransactionContextInterface
 	return policy.TotalPaid, nil
 }
 
+// GetAllPolicies returns all policies stored in the ledger
+func (s *SmartContract) GetAllPolicies(ctx contractapi.TransactionContextInterface) ([]Policy, error) {
+	// Get the total number of policies
+	totalPolicies, err := s.GetTotalPoliciesCount(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// If there are no policies, return an empty slice
+	if totalPolicies == 0 {
+		return []Policy{}, nil
+	}
+
+	// Define the range for querying policies
+	startKey := "0"
+	endKey := strconv.Itoa(totalPolicies + 1)
+
+	resultsIterator, err := ctx.GetStub().GetStateByRange(startKey, endKey)
+	if err != nil {
+		return nil, err
+	}
+	defer resultsIterator.Close()
+
+	var policies []Policy
+	for resultsIterator.HasNext() {
+		queryResponse, err := resultsIterator.Next()
+		if err != nil {
+			return nil, err
+		}
+
+		var policy Policy
+		err = json.Unmarshal(queryResponse.Value, &policy)
+		if err != nil {
+			return nil, err
+		}
+		policies = append(policies, policy)
+	}
+
+	return policies, nil
+}
+
+// GetTotalPoliciesCount returns the total number of policies stored in the ledger
+func (s *SmartContract) GetTotalPoliciesCount(ctx contractapi.TransactionContextInterface) (int, error) {
+	counterBytes, err := ctx.GetStub().GetState(counterKey)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get counter: %v", err)
+	}
+
+	if counterBytes == nil {
+		return 0, fmt.Errorf("counter does not exist")
+	}
+
+	counter, err := strconv.Atoi(string(counterBytes))
+	if err != nil {
+		return 0, fmt.Errorf("failed to convert counter to int: %v", err)
+	}
+
+	return counter, nil
+}
+
 func main() {
 	chaincode, err := contractapi.NewChaincode(&SmartContract{})
 	if err != nil {

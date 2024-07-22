@@ -94,7 +94,6 @@ async function getInstallmentNo(req, res) {
     }
 }
 
-
 async function setInstallmentNo(req, res) {
     const { newInstallmentNo } = req.body;
     console.log(`Received request to set new installment number to: ${newInstallmentNo}`);
@@ -166,6 +165,7 @@ async function cancelPolicy(req, res) {
         res.status(500).send(`Failed to cancel policy: ${error}`);
     }
 }
+
 async function deletePolicy(req, res) {
     const { id } = req.body; // Extract id from req.body
     console.log(`Received request to delete policy with ID: ${id}`);
@@ -180,6 +180,17 @@ async function deletePolicy(req, res) {
     }
 }
 
+async function getAllPolicies(req, res) {
+    console.log(`Received request to get all policies`);
+    try {
+        const result = await evaluateTransaction('GetAllPolicies');
+        console.log(`Successfully retrieved all policies`);
+        res.status(200).json(result);
+    } catch (error) {
+        console.error(`Failed to retrieve all policies - Error: ${error}`);
+        res.status(500).send(`Failed to retrieve all policies: ${error}`);
+    }
+}
 
 module.exports = {
     initLedger,
@@ -190,5 +201,6 @@ module.exports = {
     claimCoverage,
     cancelPolicy,
     deletePolicy,
-    setInstallmentNo
+    setInstallmentNo,
+    getAllPolicies
 };

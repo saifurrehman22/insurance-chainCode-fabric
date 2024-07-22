@@ -11,5 +11,7 @@ router.post('/claimCoverage', policyController.claimCoverage);
 router.post('/cancelPolicy', policyController.cancelPolicy);
 router.post('/deletePolicy', policyController.deletePolicy);
 router.post('/setInstallmentNo', policyController.setInstallmentNo);
+router.get('/getAll', policyController.getAllPolicies);
+
 
 module.exports = router;
