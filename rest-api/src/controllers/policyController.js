@@ -86,8 +86,9 @@ async function initLedger(req, res) {
 }
 
 async function getInstallmentNo(req, res) {
+    const { id } = req.params;
     try {
-        const result = await evaluateTransaction('GetInstallmentNo');
+        const result = await evaluateTransaction('GetInstallmentNo', id.toString());
         res.status(200).json(result);
     } catch (error) {
         res.status(500).send(`Failed to get installment number: ${error}`);
@@ -95,24 +96,24 @@ async function getInstallmentNo(req, res) {
 }
 
 async function setInstallmentNo(req, res) {
-    const { newInstallmentNo } = req.body;
-    console.log(`Received request to set new installment number to: ${newInstallmentNo}`);
+    const { id, newInstallmentNo } = req.body;
+    console.log(`Received request to set new installment number for policy ID ${id} to: ${newInstallmentNo}`);
 
     try {
-        await submitTransaction('SetInstallmentNo', newInstallmentNo.toString());
-        console.log(`Successfully set new installment number to: ${newInstallmentNo}`);
-        res.status(200).send(`Installment number set to ${newInstallmentNo}`);
+        await submitTransaction('SetInstallmentNo', id.toString(), newInstallmentNo.toString());
+        console.log(`Successfully set new installment number for policy ID ${id} to: ${newInstallmentNo}`);
+        res.status(200).send(`Installment number for policy ID ${id} set to ${newInstallmentNo}`);
     } catch (error) {
-        console.error(`Failed to set installment number: ${error}`);
+        console.error(`Failed to set installment number for policy ID ${id}: ${error}`);
         res.status(500).send(`Failed to set installment number: ${error}`);
     }
 }
 
 async function createLifeInsurancePolicy(req, res) {
-    const { holderName, premium, coverage, effectiveDate, expirationDate } = req.body;
+    const { holderName, age, premium, coverage, installmentNo, totalPremiumToPay } = req.body;
     try {
-        await submitTransaction('CreateLifeInsurancePolicy', holderName, premium.toString(), coverage.toString());
-        console.log("created Life Insurance Policy ");
+        await submitTransaction('CreateLifeInsurancePolicy', holderName, age.toString(), premium.toString(), coverage.toString(), installmentNo.toString(), totalPremiumToPay.toString());
+        console.log("Created Life Insurance Policy");
         res.status(200).send('Life insurance policy created successfully');
     } catch (error) {
         res.status(500).send(`Failed to create life insurance policy: ${error}`);
@@ -120,13 +121,13 @@ async function createLifeInsurancePolicy(req, res) {
 }
 
 async function createHealthInsurancePolicy(req, res) {
-    const { holderName, premium, coverage, effectiveDate, expirationDate } = req.body;
+    const { holderName, age, premium, coverage, installmentNo, totalPremiumToPay } = req.body;
     try {
-        await submitTransaction('CreateHealthInsurancePolicy', holderName, premium.toString(), coverage.toString());
-        console.log("created Health Insurance Policy ");
+        await submitTransaction('CreateHealthInsurancePolicy', holderName, age.toString(), premium.toString(), coverage.toString(), installmentNo.toString(), totalPremiumToPay.toString());
+        console.log("Created Health Insurance Policy");
         res.status(200).send('Health insurance policy created successfully');
     } catch (error) {
-        res.status(500).send(`Failed to create Health insurance policy: ${error}`);
+        res.status(500).send(`Failed to create health insurance policy: ${error}`);
     }
 }
 
@@ -148,7 +149,7 @@ async function getPolicy(req, res) {
     const id = req.params.id;
     console.log(`Received request to read policy with ID: ${id}`);
     try {
-        const result = await evaluateTransaction('ReadPolicy', id);
+        const result = await evaluateTransaction('ReadPolicy', id.toString());
         console.log(`Successfully read policy with ID: ${id}`);
         res.status(200).json(result);
     } catch (error) {
@@ -206,6 +207,7 @@ async function getAllPolicies(req, res) {
 module.exports = {
     initLedger,
     getInstallmentNo,
+    setInstallmentNo,
     createLifeInsurancePolicy,
     createHealthInsurancePolicy,
     payPremium,
@@ -213,6 +215,5 @@ module.exports = {
     claimCoverage,
     cancelPolicy,
     deletePolicy,
-    setInstallmentNo,
     getAllPolicies
 };
