@@ -5,6 +5,7 @@ const policyController = require('../controllers/policyController');
 router.post('/initLedger', policyController.initLedger);
 router.get('/installmentNo', policyController.getInstallmentNo);
 router.post('/createLifeInsurancePolicy', policyController.createLifeInsurancePolicy);
+router.post('/createHealthInsurancePolicy', policyController.createHealthInsurancePolicy);
 router.post('/payPremium', policyController.payPremium);
 router.get('/policy/:id', policyController.getPolicy);
 router.post('/claimCoverage', policyController.claimCoverage);

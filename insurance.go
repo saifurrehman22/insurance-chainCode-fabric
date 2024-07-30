@@ -27,26 +27,24 @@ const (
 
 // Policy describes basic details of what makes up an insurance policy
 type Policy struct {
-	ID              int          `json:"ID"`
-	HolderName      string       `json:"HolderName"`
-	PolicyType      string       `json:"PolicyType"`
-	Premium         float64      `json:"Premium"`
-	Coverage        float64      `json:"Coverage"`
-	EffectiveDate   string       `json:"EffectiveDate"`
-	ExpirationDate  string       `json:"ExpirationDate"`
-	TotalPaid       float64      `json:"TotalPaid"`
-	PaymentCount    int          `json:"PaymentCount"`
-	LastPaymentTime time.Time    `json:"LastPaymentTime"`
-	UserBalance     float64      `json:"UserBalance"`
-	PolicyStatus    PolicyStatus `json:"PolicyStatus"`
+	ID                int          `json:"ID"`
+	HolderName        string       `json:"HolderName"`
+	Age               int          `json:"Age"`
+	PolicyType        string       `json:"PolicyType"`
+	Premium           float64      `json:"Premium"`
+	Coverage          float64      `json:"Coverage"`
+	EffectiveDate     string       `json:"EffectiveDate"`
+	ExpirationDate    string       `json:"ExpirationDate"`
+	TotalPaid         float64      `json:"TotalPaid"`
+	PaymentCount      int          `json:"PaymentCount"`
+	LastPaymentTime   time.Time    `json:"LastPaymentTime"`
+	UserBalance       float64      `json:"UserBalance"`
+	PolicyStatus      PolicyStatus `json:"PolicyStatus"`
+	InstallmentNo     int          `json:"InstallmentNo"`
+	TotalPremiumToPay float64      `json:"TotalPremiumToPay"`
 }
 
 const counterKey = "policyCounter"
-
-var LifeInsuranceSilver float64 = 30000
-var LifeInsuranceGold float64 = 60000
-
-var InstallmentNo int = 3
 
 // InitLedger initializes the ledger without predefined policies
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
@@ -57,16 +55,38 @@ func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) 
 	return nil
 }
 
-func (s *SmartContract) GetInstallmentNo(ctx contractapi.TransactionContextInterface) (int, error) {
-	return InstallmentNo, nil
+func (s *SmartContract) GetInstallmentNo(ctx contractapi.TransactionContextInterface, id int) (int, error) {
+	// Retrieve the policy
+	policy, err := s.ReadPolicy(ctx, id)
+	if err != nil {
+		return 0, err
+	}
+
+	return policy.InstallmentNo, nil
 }
 
-func (s *SmartContract) SetInstallmentNo(ctx contractapi.TransactionContextInterface, newInstallmentNo int) error {
+func (s *SmartContract) SetInstallmentNo(ctx contractapi.TransactionContextInterface, id int, newInstallmentNo int) error {
 	if newInstallmentNo <= 0 {
 		return fmt.Errorf("installment number must be greater than zero")
 	}
-	InstallmentNo = newInstallmentNo
-	return nil
+
+	// Retrieve the policy
+	policy, err := s.ReadPolicy(ctx, id)
+	if err != nil {
+		return err
+	}
+
+	// Update the InstallmentNo field
+	policy.InstallmentNo = newInstallmentNo
+
+	// Marshal the updated policy to JSON
+	policyJSON, err := json.Marshal(policy)
+	if err != nil {
+		return err
+	}
+
+	// Store the updated policy in the ledger
+	return ctx.GetStub().PutState(strconv.Itoa(id), policyJSON)
 }
 
 func (s *SmartContract) getNextID(ctx contractapi.TransactionContextInterface) (int, error) {
@@ -94,7 +114,7 @@ func (s *SmartContract) getNextID(ctx contractapi.TransactionContextInterface) (
 }
 
 // CreateHealthInsurancePolicy adds a new health insurance policy to the ledger
-func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, premium float64, coverage float64) error {
+func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, age int, premium float64, coverage float64, installmentNo int, totalPremiumToPay float64) error {
 	id, err := s.getNextID(ctx)
 	if err != nil {
 		return err
@@ -109,15 +129,18 @@ func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionC
 	expirationDate := effectiveDate.Add(5 * time.Minute)
 
 	policy := Policy{
-		ID:             id,
-		HolderName:     holderName,
-		PolicyType:     "Health",
-		Premium:        premium,
-		Coverage:       coverage,
-		EffectiveDate:  effectiveDate.Format(time.RFC3339),
-		ExpirationDate: expirationDate.Format(time.RFC3339),
-		TotalPaid:      0,
-		PolicyStatus:   Active,
+		ID:                id,
+		HolderName:        holderName,
+		Age:               age,
+		PolicyType:        "Health",
+		Premium:           premium,
+		Coverage:          coverage,
+		EffectiveDate:     effectiveDate.Format(time.RFC3339),
+		ExpirationDate:    expirationDate.Format(time.RFC3339),
+		TotalPaid:         0,
+		PolicyStatus:      Active,
+		InstallmentNo:     installmentNo,
+		TotalPremiumToPay: totalPremiumToPay,
 	}
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
@@ -128,7 +151,7 @@ func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionC
 }
 
 // CreateLifeInsurancePolicy adds a new life insurance policy to the ledger
-func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, premium float64, coverage float64) error {
+func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, age int, premium float64, coverage float64, installmentNo int, totalPremiumToPay float64) error {
 	id, err := s.getNextID(ctx)
 	if err != nil {
 		return err
@@ -143,15 +166,18 @@ func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionCon
 	expirationDate := effectiveDate.Add(5 * time.Minute)
 
 	policy := Policy{
-		ID:             id,
-		HolderName:     holderName,
-		PolicyType:     "Life",
-		Premium:        premium,
-		Coverage:       coverage,
-		EffectiveDate:  effectiveDate.Format(time.RFC3339),
-		ExpirationDate: expirationDate.Format(time.RFC3339),
-		TotalPaid:      0,
-		PolicyStatus:   Active,
+		ID:                id,
+		HolderName:        holderName,
+		Age:               age,
+		PolicyType:        "Life",
+		Premium:           premium,
+		Coverage:          coverage,
+		EffectiveDate:     effectiveDate.Format(time.RFC3339),
+		ExpirationDate:    expirationDate.Format(time.RFC3339),
+		TotalPaid:         0,
+		PolicyStatus:      Active,
+		InstallmentNo:     installmentNo,
+		TotalPremiumToPay: totalPremiumToPay,
 	}
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
@@ -181,7 +207,7 @@ func (s *SmartContract) ReadPolicy(ctx contractapi.TransactionContextInterface, 
 }
 
 // UpdatePolicy updates an existing policy in the ledger
-func (s *SmartContract) UpdatePolicy(ctx contractapi.TransactionContextInterface, id int, holderName string, policyType string, premium float64, coverage float64) error {
+func (s *SmartContract) UpdatePolicy(ctx contractapi.TransactionContextInterface, id int, holderName string, policyType string, premium float64, coverage float64, installmentNo int, totalPremiumToPay float64) error {
 	policy, err := s.ReadPolicy(ctx, id)
 	if err != nil {
 		return err
@@ -191,6 +217,8 @@ func (s *SmartContract) UpdatePolicy(ctx contractapi.TransactionContextInterface
 	policy.PolicyType = policyType
 	policy.Premium = premium
 	policy.Coverage = coverage
+	policy.InstallmentNo = installmentNo
+	policy.TotalPremiumToPay = totalPremiumToPay
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
 		return err
@@ -218,7 +246,7 @@ func (s *SmartContract) PayPremium(ctx contractapi.TransactionContextInterface, 
 	}
 
 	// Check if the policy is eligible for payment based on the time interval and maximum payment count
-	if policy.PaymentCount >= InstallmentNo {
+	if policy.PaymentCount >= policy.InstallmentNo {
 		return fmt.Errorf("maximum number of premium payments reached")
 	}
 
@@ -273,8 +301,13 @@ func (s *SmartContract) ClaimCoverage(ctx contractapi.TransactionContextInterfac
 		return err
 	}
 
-	// Check if the total paid amount exceeds the LifeInsuranceSilver
-	if policy.TotalPaid >= LifeInsuranceSilver {
+	// Check if the policy has already been claimed
+	if policy.PolicyStatus == Claimed {
+		return fmt.Errorf("coverage for this policy has already been claimed")
+	}
+
+	// Check if the total paid amount exceeds the TotalPremiumToPay
+	if policy.TotalPaid >= policy.TotalPremiumToPay {
 
 		// Transfer coverage amount to the user's balance
 		policy.UserBalance += policy.Coverage
@@ -295,8 +328,8 @@ func (s *SmartContract) ClaimCoverage(ctx contractapi.TransactionContextInterfac
 		return nil
 	}
 
-	// Total paid amount is below the LifeInsuranceSilver, so no action required
-	return fmt.Errorf("total paid amount is below the LifeInsuranceSilver")
+	// Total paid amount is below the TotalPremiumToPay, so no action required
+	return fmt.Errorf("total paid amount is below the TotalPremiumToPay")
 }
 
 func (s *SmartContract) Cancel(ctx contractapi.TransactionContextInterface, id int) error {
@@ -306,8 +339,12 @@ func (s *SmartContract) Cancel(ctx contractapi.TransactionContextInterface, id i
 		return err
 	}
 
-	// Check if the total paid amount is less than the LifeInsuranceSilver
-	if policy.TotalPaid < LifeInsuranceSilver {
+	if policy.PolicyStatus == Cancelled {
+		return fmt.Errorf("coverage for this policy has already been Cancelled")
+	}
+
+	// Check if the total paid amount is less than the TotalPremiumToPay
+	if policy.TotalPaid < policy.TotalPremiumToPay {
 
 		// Transfer TotalPaid amount to the user's balance
 		policy.UserBalance += policy.TotalPaid
@@ -328,8 +365,8 @@ func (s *SmartContract) Cancel(ctx contractapi.TransactionContextInterface, id i
 		return nil
 	}
 
-	// Total paid amount is below the LifeInsuranceSilver, so no action required
-	return fmt.Errorf("total paid amount is below the LifeInsuranceSilver")
+	// Total paid amount is below the TotalPremiumToPay, so no action required
+	return fmt.Errorf("total paid amount is below the TotalPremiumToPay")
 }
 
 // GetTotalPaid returns the total premium paid for the policy with the given id

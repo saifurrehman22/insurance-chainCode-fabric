@@ -119,6 +119,17 @@ async function createLifeInsurancePolicy(req, res) {
     }
 }
 
+async function createHealthInsurancePolicy(req, res) {
+    const { holderName, premium, coverage, effectiveDate, expirationDate } = req.body;
+    try {
+        await submitTransaction('CreateHealthInsurancePolicy', holderName, premium.toString(), coverage.toString());
+        console.log("created Health Insurance Policy ");
+        res.status(200).send('Health insurance policy created successfully');
+    } catch (error) {
+        res.status(500).send(`Failed to create Health insurance policy: ${error}`);
+    }
+}
+
 async function payPremium(req, res) {
     const { id, amount } = req.body;
     console.log(`Received request to pay premium for policy ID: ${id}, amount: ${amount}`);
@@ -196,6 +207,7 @@ module.exports = {
     initLedger,
     getInstallmentNo,
     createLifeInsurancePolicy,
+    createHealthInsurancePolicy,
     payPremium,
     getPolicy,
     claimCoverage,

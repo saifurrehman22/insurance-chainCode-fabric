@@ -12,6 +12,7 @@
     "@grpc/grpc-js": "^1.10.10",
     "@hyperledger/fabric-gateway": "^1.5.1",
     "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
     "express": "^4.19.2"
   }
 }
