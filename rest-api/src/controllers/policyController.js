@@ -109,16 +109,27 @@ async function setInstallmentNo(req, res) {
     }
 }
 
-async function createLifeInsurancePolicy(req, res) {
-    const { holderName, age, premium, coverage, installmentNo, totalPremiumToPay } = req.body;
+async function createLifeInsurancePolicy  (req, res)  {
+    const { holderName, age, location, companyName, packageName, premium, coverage, installmentNo, totalPremiumToPay, profitPercentage } = req.body;
     try {
-        await submitTransaction('CreateLifeInsurancePolicy', holderName, age.toString(), premium.toString(), coverage.toString(), installmentNo.toString(), totalPremiumToPay.toString());
-        console.log("Created Life Insurance Policy");
-        res.status(200).send('Life insurance policy created successfully');
+        await submitTransaction(
+            'CreateLifeInsurancePolicy',
+            holderName,
+            age.toString(),
+            location,
+            companyName,
+            packageName,
+            premium.toString(),
+            coverage.toString(),
+            installmentNo.toString(),
+            totalPremiumToPay.toString(),
+            profitPercentage.toString()
+        );
+        res.status(201).send('Life insurance policy created successfully');
     } catch (error) {
-        res.status(500).send(`Failed to create life insurance policy: ${error}`);
+        res.status(500).send(`Failed to create life insurance policy: ${error.message}`);
     }
-}
+};
 
 async function createHealthInsurancePolicy(req, res) {
     const { holderName, age, premium, coverage, installmentNo, totalPremiumToPay } = req.body;
@@ -203,6 +214,92 @@ async function getAllPolicies(req, res) {
         res.status(500).send(`Failed to retrieve all policies: ${error}`);
     }
 }
+async function calculateMaturity(req, res) {
+    const { premium, installmentNo, profitPercentage } = req.body;
+
+    try {
+        // Validate inputs
+        if (typeof premium !== 'number' || typeof installmentNo !== 'number') {
+            throw new Error('Premium and installmentNo must be numbers');
+        }
+
+        // Fetch default profit percentage if necessary
+        let defaultProfitPercentage;
+        try {
+            defaultProfitPercentage  = await evaluateTransaction('GetProfitPercentageDefault');
+            if (typeof defaultProfitPercentage !== 'number') {
+                throw new Error('Default profit percentage is not a number');
+            }
+        } catch (error) {
+            throw new Error(`Failed to get profit percentage default: ${error.message}`);
+        }
+
+        // Use the default profit percentage if the provided one is 0 or less
+        const effectiveProfitPercentage = profitPercentage > 0 ? profitPercentage : defaultProfitPercentage;
+
+        // Initialize matured balance
+        let maturedBalance = 0;
+
+        // Calculate the matured balance by summing up the compounded amounts for each installment
+        for (let k = 0; k < installmentNo; k++) {
+            const yearsRemaining = installmentNo - k;
+            maturedBalance += premium * Math.pow((1 + effectiveProfitPercentage / 100), yearsRemaining);
+        }
+
+        // Return the calculated matured balance
+        res.status(200).json({ maturedBalance });
+    } catch (error) {
+        res.status(500).send(`Failed to calculate maturity: ${error.message}`);
+    }
+}
+
+
+async function getProfitPercentageDefault(req, res) {
+    console.log('Received request to get default profit percentage');
+
+    try {
+        const result = await evaluateTransaction('GetProfitPercentageDefault');
+
+        // Log the result for debugging
+        console.log('Result from evaluateTransaction:', result);
+
+        // Ensure the result is a number
+        if (typeof result !== 'number') {
+            throw new Error('Invalid data type received for default profit percentage');
+        }
+
+        // Return the result as JSON
+        res.status(200).json({ defaultProfitPercentage: result });
+    } catch (error) {
+        // Log the error message for debugging
+        console.error('Error in getProfitPercentageDefault:', error.message);
+
+        // Send a structured error response
+        res.status(500).json({
+            error: `Failed to get default profit percentage: ${error.message}`
+        });
+    }
+}
+
+
+
+
+
+async function updateProfitPercentageDefault(req, res) {
+    const { newProfitPercentage } = req.body;
+
+    try {
+        const parsedPercentage = newProfitPercentage.toString();
+        if (isNaN(parsedPercentage) || parsedPercentage <= 0) {
+            throw new Error('New profit percentage must be a number greater than 0');
+        }
+
+        await submitTransaction('UpdateProfitPercentageDefault', parsedPercentage);
+        res.status(200).send('Profit percentage default updated successfully');
+    } catch (error) {
+        res.status(500).send(`Failed to update profit percentage default: ${error.message}`);
+    }
+}
 
 module.exports = {
     initLedger,
@@ -215,5 +312,8 @@ module.exports = {
     claimCoverage,
     cancelPolicy,
     deletePolicy,
-    getAllPolicies
+    getAllPolicies,
+    updateProfitPercentageDefault,
+    getProfitPercentageDefault,
+    calculateMaturity
 };

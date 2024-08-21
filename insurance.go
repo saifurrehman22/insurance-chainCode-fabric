@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math"
 	"strconv"
 	"time"
 
@@ -30,7 +31,10 @@ type Policy struct {
 	ID                int          `json:"ID"`
 	HolderName        string       `json:"HolderName"`
 	Age               int          `json:"Age"`
+	Location          string       `json:"Location"`
+	CompanyName       string       `json:"CompanyName"`
 	PolicyType        string       `json:"PolicyType"`
+	PackageName       string       `json:"PackageName"`
 	Premium           float64      `json:"Premium"`
 	Coverage          float64      `json:"Coverage"`
 	EffectiveDate     string       `json:"EffectiveDate"`
@@ -44,7 +48,29 @@ type Policy struct {
 	TotalPremiumToPay float64      `json:"TotalPremiumToPay"`
 }
 
+// Declare a default profit percentage
+var profitPercentageDefault float64 = 13
+
 const counterKey = "policyCounter"
+
+var packages = map[string]Policy{
+	"Silver": {
+		Premium:       11112,
+		InstallmentNo: 18,
+		Coverage:      540000,
+	},
+	"Gold": {
+		Premium:       10000,
+		InstallmentNo: 20,
+		Coverage:      800000,
+	},
+	"Platinum": {
+		Premium:       13087,
+		InstallmentNo: 25,
+		Coverage:      1410000,
+	},
+	// Add more packages as needed
+}
 
 // InitLedger initializes the ledger without predefined policies
 func (s *SmartContract) InitLedger(ctx contractapi.TransactionContextInterface) error {
@@ -114,25 +140,52 @@ func (s *SmartContract) getNextID(ctx contractapi.TransactionContextInterface) (
 }
 
 // CreateHealthInsurancePolicy adds a new health insurance policy to the ledger
-func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, age int, premium float64, coverage float64, installmentNo int, totalPremiumToPay float64) error {
+func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, age int, location string, companyName string, packageName string, premium float64, installmentNo int, profitPercentage float64) error {
+
+	var coverage float64
+	var totalPremiumToPay float64
+
+	// Check if a packageName is provided and if it exists in the predefined packages
+	if packageName != "" {
+		insurancePackage, exists := packages[packageName]
+		if exists {
+			premium = insurancePackage.Premium
+			coverage = insurancePackage.Coverage
+			installmentNo = insurancePackage.InstallmentNo
+			totalPremiumToPay = premium * float64(installmentNo)
+		} else {
+			return fmt.Errorf("package %s does not exist", packageName)
+		}
+	} else {
+		// Call CalculateMaturity to determine the coverage if packageName is not provided
+		coverage = s.CalculateMaturity(ctx, premium, installmentNo, profitPercentage)
+		totalPremiumToPay = premium * float64(installmentNo)
+	}
+
+	// Get the next policy ID
 	id, err := s.getNextID(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Get the current timestamp
 	timestamp, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {
 		return err
 	}
 
 	effectiveDate := time.Unix(timestamp.Seconds, int64(timestamp.Nanos))
-	expirationDate := effectiveDate.Add(5 * time.Minute)
+	expirationDate := effectiveDate.Add(5 * time.Minute) // Adjust as necessary
 
+	// Create the policy using the provided or default values
 	policy := Policy{
 		ID:                id,
 		HolderName:        holderName,
 		Age:               age,
+		Location:          location,
+		CompanyName:       companyName,
 		PolicyType:        "Health",
+		PackageName:       packageName,
 		Premium:           premium,
 		Coverage:          coverage,
 		EffectiveDate:     effectiveDate.Format(time.RFC3339),
@@ -142,34 +195,63 @@ func (s *SmartContract) CreateHealthInsurancePolicy(ctx contractapi.TransactionC
 		InstallmentNo:     installmentNo,
 		TotalPremiumToPay: totalPremiumToPay,
 	}
+
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
 		return err
 	}
 
+	// Store the policy in the ledger
 	return ctx.GetStub().PutState(strconv.Itoa(id), policyJSON)
 }
 
 // CreateLifeInsurancePolicy adds a new life insurance policy to the ledger
-func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, age int, premium float64, coverage float64, installmentNo int, totalPremiumToPay float64) error {
+func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionContextInterface, holderName string, age int, location string, companyName string, packageName string, premium float64, installmentNo int, profitPercentage float64) error {
+
+	var coverage float64
+	var totalPremiumToPay float64
+
+	// Check if a packageName is provided and if it exists in the predefined packages
+	if packageName != "" {
+		insurancePackage, exists := packages[packageName]
+		if exists {
+			premium = insurancePackage.Premium
+			coverage = insurancePackage.Coverage
+			installmentNo = insurancePackage.InstallmentNo
+			totalPremiumToPay = premium * float64(installmentNo)
+		} else {
+			return fmt.Errorf("package %s does not exist", packageName)
+		}
+	} else {
+		// Call CalculateMaturity to determine the coverage if packageName is not provided
+		coverage = s.CalculateMaturity(ctx, premium, installmentNo, profitPercentage)
+		totalPremiumToPay = premium * float64(installmentNo)
+	}
+
+	// Get the next policy ID
 	id, err := s.getNextID(ctx)
 	if err != nil {
 		return err
 	}
 
+	// Get the current timestamp
 	timestamp, err := ctx.GetStub().GetTxTimestamp()
 	if err != nil {
 		return err
 	}
 
 	effectiveDate := time.Unix(timestamp.Seconds, int64(timestamp.Nanos))
-	expirationDate := effectiveDate.Add(5 * time.Minute)
+	expirationDate := effectiveDate.Add(5 * time.Minute) // Adjust as necessary
 
+	// Create the policy using the provided or default values
 	policy := Policy{
 		ID:                id,
 		HolderName:        holderName,
 		Age:               age,
-		PolicyType:        "Life",
+		Location:          location,
+		CompanyName:       companyName,
+		PolicyType:        "life",
+		PackageName:       packageName,
 		Premium:           premium,
 		Coverage:          coverage,
 		EffectiveDate:     effectiveDate.Format(time.RFC3339),
@@ -179,11 +261,13 @@ func (s *SmartContract) CreateLifeInsurancePolicy(ctx contractapi.TransactionCon
 		InstallmentNo:     installmentNo,
 		TotalPremiumToPay: totalPremiumToPay,
 	}
+
 	policyJSON, err := json.Marshal(policy)
 	if err != nil {
 		return err
 	}
 
+	// Store the policy in the ledger
 	return ctx.GetStub().PutState(strconv.Itoa(id), policyJSON)
 }
 
@@ -437,6 +521,40 @@ func (s *SmartContract) GetTotalPoliciesCount(ctx contractapi.TransactionContext
 	}
 
 	return counter, nil
+}
+
+// CalculateMaturity calculates the profit based on the premium and installment number
+func (s *SmartContract) CalculateMaturity(ctx contractapi.TransactionContextInterface, premium float64, installmentNo int, profitPercentage float64) float64 {
+	// Use the default profit percentage if the provided one is 0 or less
+	if profitPercentage <= 0 {
+		profitPercentage = profitPercentageDefault
+	}
+
+	// Initialize matured balance
+	var maturedBalance float64
+
+	// Calculate the matured balance by summing up the compounded amounts for each installment
+	for k := 0; k < installmentNo; k++ {
+		yearsRemaining := float64(installmentNo - k)
+		maturedBalance += premium * math.Pow((1+profitPercentage/100), yearsRemaining)
+	}
+
+	return maturedBalance
+}
+
+// GetProfitPercentageDefault returns the current default profit percentage
+func (s *SmartContract) GetProfitPercentageDefault(ctx contractapi.TransactionContextInterface) float64 {
+	return profitPercentageDefault
+}
+
+// UpdateProfitPercentageDefault updates the default profit percentage
+func (s *SmartContract) UpdateProfitPercentageDefault(ctx contractapi.TransactionContextInterface, newProfitPercentage float64) error {
+	// Validate the new profit percentage (optional)
+	if newProfitPercentage <= 0 {
+		return fmt.Errorf("profit percentage must be greater than 0")
+	}
+	profitPercentageDefault = newProfitPercentage
+	return nil
 }
 
 func main() {

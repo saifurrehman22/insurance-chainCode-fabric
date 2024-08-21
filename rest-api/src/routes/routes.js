@@ -15,4 +15,8 @@ router.post('/setInstallmentNo', policyController.setInstallmentNo);
 router.get('/getAll', policyController.getAllPolicies);
 
 
+router.get('/calculateMaturity', policyController.calculateMaturity);
+router.get('/profitPercentageDefault', policyController.getProfitPercentageDefault);
+router.post('/updateProfitPercentageDefault', policyController.updateProfitPercentageDefault);
+
 module.exports = router;
