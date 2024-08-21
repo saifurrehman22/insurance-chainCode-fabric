@@ -17,7 +17,17 @@ peer lifecycle chaincode commit -o 127.0.0.1:6050 --channelID mychannel --name i
 
 peer chaincode invoke -o 127.0.0.1:6050 -C mychannel -n insurance -c '{"Args":["InitLedger"]}' --waitForEvent --tls --cafile "${PWD}"/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
 
-peer chaincode invoke -o 127.0.0.1:6050 -C mychannel -n insurance -c '{"Args":["CreateLifeInsurancePolicy","ali","10000","5000000","2023-01-01","2024-01-01"]}' --waitForEvent --tls --cafile "${PWD}"/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
+peer chaincode invoke -o 127.0.0.1:6050 -C mychannel -n insurance -c '{"Args":["CreateLifeInsurancePolicy","saif","52","Pakistan","Statelife","Gold","10000","500000","2","20000"]}' --waitForEvent --tls --cafile "${PWD}"/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
+
+peer chaincode invoke -o 127.0.0.1:6050 -C mychannel -n insurance -c '{"Args":["CreateLifeInsurancePolicy","saif","52","Pakistan","Statelife","","10000","0","2","20000","20"]}' --waitForEvent --tls --cafile "${PWD}"/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
+
+peer chaincode invoke -o 127.0.0.1:6050 -C mychannel -n insurance -c '{"Args":["CalculateMaturity","10000","20","0"]}' --waitForEvent --tls --cafile "${PWD}"/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
+
+
+peer chaincode query -C mychannel -n insurance -c '{"Args":["GetProfitPercentageDefault"]}'
+
+peer chaincode invoke -o 127.0.0.1:6050 -C mychannel -n insurance -c '{"Args":["UpdateProfitPercentageDefault","20"]}' --waitForEvent --tls --cafile "${PWD}"/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
+
 
 peer chaincode query -C mychannel -n insurance -c '{"Args":["ReadPolicy","1"]}'
 
@@ -26,6 +36,7 @@ peer chaincode invoke -o 127.0.0.1:6050 -C mychannel -n insurance -c '{"Args":["
 
 peer chaincode query -C mychannel -n insurance -c '{"Args":["GetTotalPaid","1"]}'
 
+peer chaincode query -C mychannel -n insurance -c '{"Args":["CalculateMaturity","10000","20"]}'
 
 peer chaincode invoke -o 127.0.0.1:6050 -C mychannel -n insurance -c '{"Args":["ClaimCoverage","1"]}' --waitForEvent --tls --cafile "${PWD}"/crypto-config/ordererOrganizations/example.com/orderers/orderer.example.com/tls/ca.crt
 
@@ -71,8 +82,6 @@ export CORE_PEER_ADDRESS=localhost:7051
 
 peer lifecycle chaincode install insurance.tar.gz
 
-
-
 export CORE_PEER_LOCALMSPID=Org2MSP
 
 export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt
@@ -82,19 +91,13 @@ export CORE_PEER_MSPCONFIGPATH=${PWD}/organizations/peerOrganizations/org2.examp
 export CORE_PEER_ADDRESS=localhost:9051
 
 
-
-
 peer lifecycle chaincode install insurance.tar.gz
 
 peer lifecycle chaincode queryinstalled
 
-export CC_PACKAGE_ID=insurance_1:91877ef869e006b33b0aa2bb988bd584ee22922857d669daa5435bfe018ec981
-
-
+export CC_PACKAGE_ID=insurance_1:69b48add7ba4e54c4c6aa7da92e25d7803de739c92fbd89b9b4684c1ec3374d2
 
 peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --channelID mychannel --name insurance --version 1.0 --package-id $CC_PACKAGE_ID --sequence 1 --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
-
-
 
 
 export CORE_PEER_LOCALMSPID=Org1MSP
@@ -106,11 +109,7 @@ export CORE_PEER_TLS_ROOTCERT_FILE=${PWD}/organizations/peerOrganizations/org1.e
 export CORE_PEER_ADDRESS=localhost:7051
 
 
-
-
 peer lifecycle chaincode approveformyorg -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --channelID mychannel --name insurance --version 1.0 --package-id $CC_PACKAGE_ID --sequence 1 --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem"
-
-
 
 peer lifecycle chaincode checkcommitreadiness --channelID mychannel --name insurance --version 1.0 --sequence 1 --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" --output json
 
@@ -124,7 +123,7 @@ peer lifecycle chaincode querycommitted --channelID mychannel --name insurance
 peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n insurance --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"InitLedger","Args":[]}'
 
 
-peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n insurance --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"CreateLifeInsurancePolicy","Args":["John Snow","10000","5000000","2023-01-01","2024-01-01"]}'
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n insurance --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"CreateLifeInsurancePolicy","Args":["saif","27","Pakistan","Statelife","","10000","2",""]}'
 
 
 peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n insurance --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"PayPremium","Args":["1","10000"]}'
@@ -132,10 +131,27 @@ peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.exa
 
 peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n insurance --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"ClaimCoverage","Args":["1"]}'
 
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n insurance --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"Cancel","Args":["2"]}'
+
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n insurance --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"SetInstallmentNo","Args":["3","5"]}'
 
 peer chaincode query -C mychannel -n insurance -c '{"Args":["ReadPolicy","1"]}'
 
+
+
+peer chaincode query -C mychannel -n insurance -c '{"Args":["GetInstallmentNo","3"]}'
+
+peer chaincode query -C mychannel -n insurance -c '{"Args":["GetAllPolicies"]}'
+peer chaincode query -C mychannel -n insurance -c '{"Args":["GetTotalPoliciesCount"]}'
+
 ./network.sh down
+
+
+
+
+peer chaincode invoke -o localhost:7050 --ordererTLSHostnameOverride orderer.example.com --tls --cafile "${PWD}/organizations/ordererOrganizations/example.com/orderers/orderer.example.com/msp/tlscacerts/tlsca.example.com-cert.pem" -C mychannel -n insurance --peerAddresses localhost:7051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org1.example.com/peers/peer0.org1.example.com/tls/ca.crt" --peerAddresses localhost:9051 --tlsRootCertFiles "${PWD}/organizations/peerOrganizations/org2.example.com/peers/peer0.org2.example.com/tls/ca.crt" -c '{"function":"CreateHealthInsurancePolicy","Args":["Saif","22","10000","5000000","3","30000"]}'
+
 
 ------------------------------------------------------------------
 
