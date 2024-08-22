@@ -110,7 +110,7 @@ async function setInstallmentNo(req, res) {
 }
 
 async function createLifeInsurancePolicy  (req, res)  {
-    const { holderName, age, location, companyName, packageName, premium, coverage, installmentNo, totalPremiumToPay, profitPercentage } = req.body;
+    const { holderName, age, location, companyName, packageName, premium, installmentNo, profitPercentage } = req.body;
     try {
         await submitTransaction(
             'CreateLifeInsurancePolicy',
@@ -120,9 +120,7 @@ async function createLifeInsurancePolicy  (req, res)  {
             companyName,
             packageName,
             premium.toString(),
-            coverage.toString(),
             installmentNo.toString(),
-            totalPremiumToPay.toString(),
             profitPercentage.toString()
         );
         res.status(201).send('Life insurance policy created successfully');
@@ -131,16 +129,25 @@ async function createLifeInsurancePolicy  (req, res)  {
     }
 };
 
-async function createHealthInsurancePolicy(req, res) {
-    const { holderName, age, premium, coverage, installmentNo, totalPremiumToPay } = req.body;
+async function createHealthInsurancePolicy  (req, res)  {
+    const { holderName, age, location, companyName, packageName, premium, installmentNo, profitPercentage } = req.body;
     try {
-        await submitTransaction('CreateHealthInsurancePolicy', holderName, age.toString(), premium.toString(), coverage.toString(), installmentNo.toString(), totalPremiumToPay.toString());
-        console.log("Created Health Insurance Policy");
-        res.status(200).send('Health insurance policy created successfully');
+        await submitTransaction(
+            'createHealthInsurancePolicy',
+            holderName,
+            age.toString(),
+            location,
+            companyName,
+            packageName,
+            premium.toString(),
+            installmentNo.toString(),
+            profitPercentage.toString()
+        );
+        res.status(201).send('Life insurance policy created successfully');
     } catch (error) {
-        res.status(500).send(`Failed to create health insurance policy: ${error}`);
+        res.status(500).send(`Failed to create life insurance policy: ${error.message}`);
     }
-}
+};
 
 async function payPremium(req, res) {
     const { id, amount } = req.body;
